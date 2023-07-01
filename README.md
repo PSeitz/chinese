@@ -8,7 +8,7 @@ git clone https://github.com/gnuish/pinyin-zhuyin.git
 cd create_db
 git clone https://github.com/PSeitz/tocfl.git
 
-cargo install --git https://github.com/PSeitz/veloci.git veloci_bins
+cargo install --git https://github.com/PSeitz/veloci.git veloci_bins --bin create_index
 ```
 
 # Contents

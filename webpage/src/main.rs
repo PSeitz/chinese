@@ -25,7 +25,10 @@ const APP_NAME: &str = "Chisho";
 #[tokio::main]
 async fn main() {
     env_logger::init();
-    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], 3000));
+    let env_port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    // parsed
+    let port = env_port.parse::<u16>().unwrap_or(3000);
+    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], port));
     //let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("listening on http://{}", addr);
 
