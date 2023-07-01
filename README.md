@@ -2,11 +2,13 @@
 
 # Setup
 
-```
+```bash
 git clone https://github.com/cjhoward/cedict-tts.git
 git clone https://github.com/gnuish/pinyin-zhuyin.git
 cd create_db
 git clone https://github.com/PSeitz/tocfl.git
+
+cargo install --git https://github.com/PSeitz/veloci.git veloci_bins
 ```
 
 # Contents
