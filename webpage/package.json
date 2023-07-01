@@ -1,0 +1,14 @@
+{
+  "name": "webpage",
+  "version": "1.0.0",
+  "description": "",
+  "main": "tailwind.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "daisyui": "^2.51.4"
+  }
+}

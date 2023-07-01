@@ -1,0 +1,76 @@
+{
+  "index_settings": {
+    "docstore_compression": "lz4",
+    "docstore_blocksize": 100000
+  },
+  "segments": [],
+  "schema": [
+    {
+      "name": "simplified",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "traditional",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "pinyin",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+        {
+      "name": "pinyin_pretty",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+        {
+      "name": "zhuyin",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "definitions",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    }
+  ],
+  "opstamp": 0
+}

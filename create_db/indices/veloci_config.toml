@@ -1,0 +1,9 @@
+["*GLOBAL*"]
+    features = ["All"]
+[count_per_million.boost]
+    boost_type = "f32"
+[commonness_boost.boost]
+    boost_type = "f32"
+[tocfl_level.boost]
+    boost_type = "f32"
+

@@ -1,0 +1,114 @@
+{
+  "index_settings": {
+    "docstore_compression": "lz4",
+    "docstore_blocksize": 10000
+  },
+  "segments": [],
+  "schema": [
+    {
+      "name": "simplified",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "traditional",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "pinyin_search",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "pinyin",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "pinyin_pretty",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "zhuyin",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "definitions",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "commonness_boost",
+      "type": "f64",
+      "options": {
+        "indexed": false,
+        "stored": true,
+        "fast": "single"
+      }
+    },
+    {
+      "name": "count_per_million",
+      "type": "f64",
+      "options": {
+        "indexed": false,
+        "stored": true,
+        "fast": "single"
+      }
+    },
+    {
+      "name": "count_per_million_in_others",
+      "type": "f64",
+      "options": {
+        "indexed": false,
+        "stored": true,
+        "fast": "single"
+      }
+    }
+  ],
+  "opstamp": 0
+}
