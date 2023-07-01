@@ -1,12 +1,13 @@
 #![allow(non_snake_case)]
 use core::fmt;
+use std::path::PathBuf;
 use std::str::FromStr;
 
 use axum::{extract::Query, response::Html, routing::get, Router};
 use dioxus::prelude::*;
 //use search::run_search;
-use serde::{de, Deserialize, Deserializer, Serialize};
 use prettify_pinyin::prettify;
+use serde::{de, Deserialize, Deserializer, Serialize};
 //use tantivy::{
 //schema::{NamedFieldDocument, Schema},
 //Document,
@@ -17,6 +18,7 @@ use tower_http::services::{ServeDir, ServeFile};
 mod search;
 
 //use dioxus_router::{Route, Router};
+use axum_server::tls_rustls::RustlsConfig;
 use urlencoding::encode;
 
 use crate::search::run_search_veloci;
@@ -32,10 +34,32 @@ async fn main() {
     //let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("listening on http://{}", addr);
 
+    // Check if env var CERT_PATH is set
+    let config = if let Ok(cert_path) = std::env::var("CERT_PATH") {
+        let config = RustlsConfig::from_pem_file(
+            PathBuf::from(cert_path.to_owned()).join("cert.pem"),
+            PathBuf::from(cert_path).join("key.pem"),
+        )
+        .await
+        .unwrap();
+        config
+    } else {
+        let subject_alt_names = vec!["chisho.org".to_string(), "localhost".to_string()];
+        let cert = rcgen::generate_simple_self_signed(subject_alt_names).unwrap();
+        let config = RustlsConfig::from_pem(
+            cert.serialize_pem().unwrap().as_bytes().to_vec(),
+            cert.serialize_private_key_pem().as_bytes().to_vec(),
+        )
+        .await
+        .unwrap();
+        config
+    };
+
     let serve_dir = ServeDir::new("dist").not_found_service(ServeFile::new("dist/output.css"));
     let media_dir =
         ServeDir::new("../cedict-tts/").not_found_service(ServeFile::new("dist/output.css"));
-    axum::Server::bind(&addr)
+    axum_server::bind_rustls(addr, config)
+        //axum::Server::bind(&addr)
         .serve(
             Router::new()
                 //.route("/", get(app_ssr))
@@ -169,12 +193,19 @@ where
 }
 
 async fn app_endpoint(params: Query<Params>) -> Html<String> {
-    let search_term = params.q.as_ref().map(ToString::to_string).unwrap_or_default();
+    let search_term = params
+        .q
+        .as_ref()
+        .map(ToString::to_string)
+        .unwrap_or_default();
     print_time!("Render Page Time");
-    render_page(search_term.to_string(), dioxus_ssr::render_lazy(rsx! {
-        Page{q: search_term, top: params.top.unwrap_or(20)}
-        //Page{q: params.q.as_ref().unwrap_or(&"".to_string()).to_string(), top: }
-    }))
+    render_page(
+        search_term.to_string(),
+        dioxus_ssr::render_lazy(rsx! {
+            Page{q: search_term, top: params.top.unwrap_or(20)}
+            //Page{q: params.q.as_ref().unwrap_or(&"".to_string()).to_string(), top: }
+        }),
+    )
 }
 
 const LINK_CLASSES: &str = "underline text-slate-500 hover:text-blue-600 ";
@@ -427,7 +458,6 @@ pub fn SearchResultItem(cx: Scope<SearchResultItemProp>) -> Element {
                             }
                         }
                     })
-                    
                 }
 
             }
