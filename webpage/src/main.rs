@@ -37,8 +37,8 @@ async fn main() {
     // Check if env var CERT_PATH is set
     let config = if let Ok(cert_path) = std::env::var("CERT_PATH") {
         let config = RustlsConfig::from_pem_file(
-            PathBuf::from(cert_path.to_owned()).join("cert.pem"),
-            PathBuf::from(cert_path).join("key.pem"),
+            PathBuf::from(cert_path.to_owned()).join("fullchain.pem"),
+            PathBuf::from(cert_path).join("privkey.pem"),
         )
         .await
         .unwrap();
