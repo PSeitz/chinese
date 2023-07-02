@@ -35,31 +35,31 @@ async fn main() {
     println!("listening on http://{}", addr);
 
     // Check if env var CERT_PATH is set
-    let config = if let Ok(cert_path) = std::env::var("CERT_PATH") {
-        let config = RustlsConfig::from_pem_file(
-            PathBuf::from(cert_path.to_owned()).join("fullchain.pem"),
-            PathBuf::from(cert_path).join("privkey.pem"),
-        )
-        .await
-        .unwrap();
-        config
-    } else {
-        let subject_alt_names = vec!["chisho.org".to_string(), "localhost".to_string()];
-        let cert = rcgen::generate_simple_self_signed(subject_alt_names).unwrap();
-        let config = RustlsConfig::from_pem(
-            cert.serialize_pem().unwrap().as_bytes().to_vec(),
-            cert.serialize_private_key_pem().as_bytes().to_vec(),
-        )
-        .await
-        .unwrap();
-        config
-    };
+    //let config = if let Ok(cert_path) = std::env::var("CERT_PATH") {
+    //let config = RustlsConfig::from_pem_file(
+    //PathBuf::from(cert_path.to_owned()).join("fullchain.pem"),
+    //PathBuf::from(cert_path).join("privkey.pem"),
+    //)
+    //.await
+    //.unwrap();
+    //config
+    //} else {
+    //let subject_alt_names = vec!["chisho.org".to_string(), "localhost".to_string()];
+    //let cert = rcgen::generate_simple_self_signed(subject_alt_names).unwrap();
+    //let config = RustlsConfig::from_pem(
+    //cert.serialize_pem().unwrap().as_bytes().to_vec(),
+    //cert.serialize_private_key_pem().as_bytes().to_vec(),
+    //)
+    //.await
+    //.unwrap();
+    //config
+    //};
 
     let serve_dir = ServeDir::new("dist").not_found_service(ServeFile::new("dist/output.css"));
     let media_dir =
         ServeDir::new("../cedict-tts/").not_found_service(ServeFile::new("dist/output.css"));
-    axum_server::bind_rustls(addr, config)
-        //axum::Server::bind(&addr)
+    //axum_server::bind_rustls(addr, config)
+    axum::Server::bind(&addr)
         .serve(
             Router::new()
                 //.route("/", get(app_ssr))
@@ -97,6 +97,11 @@ async fn main() {
 //object.onclick = function(){myScript};
 
 fn render_page(search_term: String, ssr_output: String) -> Html<String> {
+    let title = if search_term.is_empty() {
+        "Chisho.org - Chinese Dicitonary".to_string()
+    } else {
+        format!("{} - Chisho.org", search_term)
+    };
     let audio_script = r#"
    <script>
 
@@ -140,7 +145,7 @@ fn render_page(search_term: String, ssr_output: String) -> Html<String> {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
 {audio_script}
-    <title>Chisho {search_term}</title>
+    <title>{title}</title>
     <style>
         fg:before {{
           content: attr(t);
