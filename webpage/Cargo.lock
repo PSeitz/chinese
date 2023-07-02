@@ -1614,16 +1614,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pem"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b13fe415cdf3c8e44518e18a7c95a13431d9bdf6d15367d82b23c377fdd441a"
-dependencies = [
- "base64 0.21.2",
- "serde",
-]
-
-[[package]]
 name = "percent-encoding"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1723,18 +1713,6 @@ dependencies = [
  "crossbeam-deque",
  "crossbeam-utils",
  "num_cpus",
-]
-
-[[package]]
-name = "rcgen"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4954fbc00dcd4d8282c987710e50ba513d351400dbdd00e803a05172a90d8976"
-dependencies = [
- "pem",
- "ring",
- "time 0.3.20",
- "yasna",
 ]
 
 [[package]]
@@ -2653,7 +2631,6 @@ dependencies = [
  "measure_time",
  "once_cell",
  "prettify_pinyin",
- "rcgen",
  "regex",
  "serde",
  "serde_json",
@@ -2784,13 +2761,4 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23d020b441f92996c80d94ae9166e8501e59c7bb56121189dc9eab3bd8216966"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "yasna"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e17bb3549cc1321ae1296b9cdc2698e2b6cb1992adfa19a8c72e5b7a738f44cd"
-dependencies = [
- "time 0.3.20",
 ]
