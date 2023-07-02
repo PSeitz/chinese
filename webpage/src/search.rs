@@ -80,15 +80,14 @@ fn to_alternative_variant(kanji: char) -> char {
 }
 
 pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc, VelociError> {
-    print_time!("SearchTime");
-
+    debug_time!("SearchTime");
     let pers = &PERSISTENCE;
 
-    let mut query = query.to_string();
+    let mut query = query.trim().to_string();
+    info!("Query {:?}", query);
 
     let tag_filter = get_tag_filter(&mut query);
-    query = query.trim().to_string();
-    dbg!(&query);
+    //dbg!(&query);
 
     let terms_from_query = || query.split_whitespace().filter(|el| !el.is_empty());
 
@@ -173,7 +172,7 @@ pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc,
         })
     };
 
-    println!("{}", serde_json::to_string_pretty(&search_request).unwrap());
+    //println!("{}", serde_json::to_string_pretty(&search_request).unwrap());
 
     let terms = terms_from_query().collect::<Vec<_>>();
     let phrase_queries = generate_phrase_queries_simple(
@@ -182,10 +181,10 @@ pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc,
         vec!["meanings[]".to_string(), "pinyin".to_string()],
     )
     .unwrap();
-    println!(
-        "phrase_queries {}",
-        serde_json::to_string_pretty(&phrase_queries).unwrap()
-    );
+    //println!(
+    //"phrase_queries {}",
+    //serde_json::to_string_pretty(&phrase_queries).unwrap()
+    //);
 
     let phrase_boosts = if phrase_queries.is_empty() {
         None

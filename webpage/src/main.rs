@@ -18,21 +18,35 @@ use tower_http::services::{ServeDir, ServeFile};
 mod search;
 
 //use dioxus_router::{Route, Router};
-use axum_server::tls_rustls::RustlsConfig;
+//use axum_server::tls_rustls::RustlsConfig;
 use urlencoding::encode;
 
 use crate::search::run_search_veloci;
 const APP_NAME: &str = "Chisho";
 
+//use syslog::{BasicLogger, Facility, Formatter3164};
+
 #[tokio::main]
 async fn main() {
     env_logger::init();
+    //let formatter = Formatter3164 {
+    //facility: Facility::LOG_USER,
+    //hostname: None,
+    //process: "chinese_web".into(),
+    //pid: 0,
+    //};
+
+    //let logger = syslog::unix(formatter).expect("could not connect to syslog");
+    //log::set_boxed_logger(Box::new(BasicLogger::new(logger)))
+    //.map(|()| log::set_max_level(LevelFilter::Info))
+    //.unwrap();
+
     let env_port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
     // parsed
     let port = env_port.parse::<u16>().unwrap_or(3000);
     let addr = std::net::SocketAddr::from(([0, 0, 0, 0], port));
     //let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3000));
-    println!("listening on http://{}", addr);
+    info!("listening on http://{}", addr);
 
     // Check if env var CERT_PATH is set
     //let config = if let Ok(cert_path) = std::env::var("CERT_PATH") {
@@ -203,7 +217,7 @@ async fn app_endpoint(params: Query<Params>) -> Html<String> {
         .as_ref()
         .map(ToString::to_string)
         .unwrap_or_default();
-    print_time!("Render Page Time");
+    debug_time!("Render Page Time");
     render_page(
         search_term.to_string(),
         dioxus_ssr::render_lazy(rsx! {
