@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = "0.6.11"
-axum-server = { version = "0.5.1", features = ["tls-rustls"] }
+axum = {version = "0.6.11", features = ["tower-log"] }
+#axum-server = { version = "0.5.1", features = ["tls-rustls", "tower-log"] }
 dioxus = "0.3.2"
 dioxus-router = "0.3.0"
 dioxus-ssr = "0.3.0"
