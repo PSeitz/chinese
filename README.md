@@ -1,4 +1,7 @@
 
+# Chisho
+
+http://chisho.org/
 
 # Setup
 
