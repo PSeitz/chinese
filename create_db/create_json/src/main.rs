@@ -207,7 +207,7 @@ fn normalize_definitions(definitions: &mut Vec<String>) -> Option<String> {
     // Replace all pinyin with pretty
     for text in definitions.iter_mut() {
         *text = re
-            .replace(text, |caps: &Captures| {
+            .replace_all(text, |caps: &Captures| {
                 let orig = &caps[1];
                 let pretty = prettify(caps[1].to_string());
                 if orig != pretty {
@@ -218,6 +218,16 @@ fn normalize_definitions(definitions: &mut Vec<String>) -> Option<String> {
             })
             .to_string();
     }
+
+    // Flatten semicolon separated definitions
+    let mut new_definitions = Vec::new();
+    for text in definitions.iter() {
+        for sub_def in text.split(";") {
+            new_definitions.push(sub_def.trim().to_string());
+        }
+    }
+    *definitions = new_definitions;
+
     pinyin_taiwan
 }
 
@@ -311,13 +321,14 @@ fn main() {
         let count_per_million_in_others = *common_char
             .get_entry(&e.traditional(), e.pinyin())
             .unwrap_or(&0);
-        if e.traditional() == "朋友" {
+        if e.traditional() == "分" {
             dbg!(count_per_million_in_others);
             dbg!(count_per_million_written);
             dbg!(e.pinyin());
         }
 
-        let kanji = kanji_dict.get(e.traditional()).map(|k| k.clone());
+        let kanji_char = kanji_hanzi_converter::convert_to_japanese_kanji(e.traditional());
+        let kanji = kanji_dict.get(kanji_char.as_str()).map(|k| k.clone());
 
         let mut commonness_boost = (count_per_million_spoken as f64
             + count_per_million_written as f64)

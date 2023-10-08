@@ -11,7 +11,7 @@
 - [ ] Add japanese
 - [ ] Add tag for chinese japanese overlap (if they share same meaning)
 - [ ] Add radicals, but based on japanese radicals, so memnonics can be reused
-- [ ] Convert Kanji to traditional chinese
+- [X] Convert Kanji to traditional chinese
 - [X] show wanikani level as tag
 
 - [X] paging
@@ -19,4 +19,5 @@
 - [ ] Add words containing the same radicals
 - [ ] Add similar entries
 
-- [ ] Add multiple pinyin, by parsing "(Taiwan pr. [han4])"
+- [X] Add multiple pinyin, by parsing "(Taiwan pr. [han4])"
+- [ ] Replace numbers with tones, in e.g. "CL:個|个[gè],位[wei4],名[ming2],屆|届[jie4]"

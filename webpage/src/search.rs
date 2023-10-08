@@ -69,14 +69,11 @@ static PERSISTENCE: Lazy<Persistence> = Lazy::new(|| {
     persistence::Persistence::load(PathBuf::from("../create_db/indices/dict_velo")).unwrap()
 });
 
-static TO_ALTERNATIVE_VARIANT: Lazy<HashMap<char, char>> = Lazy::new(|| {
-    vec![('気', '氣'), ('氷', '冰'), ('毎', '每')]
-        .into_iter()
-        .collect()
-});
-
-fn to_alternative_variant(kanji: char) -> char {
-    TO_ALTERNATIVE_VARIANT.get(&kanji).copied().unwrap_or(kanji)
+fn to_traditional_chinese_variant(kanji: char) -> char {
+    kanji_hanzi_converter::convert_to_traditional_chinese(&kanji.to_string())
+        .chars()
+        .next()
+        .unwrap_or(kanji)
 }
 
 pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc, VelociError> {
@@ -125,7 +122,7 @@ pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc,
                     // single chinese character
                     if term.len() == 1 {
                         let orig_char = term.chars().next().unwrap();
-                        let trad_char = to_alternative_variant(orig_char);
+                        let trad_char = to_traditional_chinese_variant(orig_char);
                         let mut chars = vec![orig_char, trad_char];
                         chars.dedup();
                         chars
@@ -139,7 +136,7 @@ pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc,
                         // match for japanese pairs
                         let term: String = term
                             .chars()
-                            .map(|char| to_alternative_variant(char))
+                            .map(|char| to_traditional_chinese_variant(char))
                             .collect();
                         vec![(term.to_string(), false), (format!(".*{}.*", term), true)]
                     }
