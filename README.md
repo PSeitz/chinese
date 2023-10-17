@@ -1,7 +1,11 @@
 
 # Chisho
+Chisho is a Chinese dictionary
 
 http://chisho.org/
+
+### Discord
+https://discord.gg/JmP8gW6EdB
 
 # Setup
 
