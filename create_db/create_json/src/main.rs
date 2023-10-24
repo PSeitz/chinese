@@ -6,7 +6,8 @@ use pinyin_zhuyin::pinyin_to_zhuyin;
 use prettify_pinyin::prettify;
 use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
-use tocfl::load_tocfl_dictionary;
+use serde_json::Number;
+use tocfl::{load_tocfl_dictionary, TOCFLDictionary};
 
 use crate::jmdict::load_jmdict;
 
@@ -230,6 +231,7 @@ fn normalize_definitions(definitions: &mut Vec<String>) -> Option<String> {
 
     pinyin_taiwan
 }
+use tocfl::Entry as TOCFLEntry;
 
 fn main() {
     //let jmdict = load_jmdict("../../../japanese-dictionary/jmdict.json");
@@ -243,6 +245,7 @@ fn main() {
     //let commonness = get_commonness();
     let radicals = get_character_radicals();
 
+    let mut entries = Vec::new();
     let mut out = std::fs::File::create("db.json").unwrap();
     let all = std::fs::read_to_string("../cedict_ts.u8").unwrap();
     for line in all.lines() {
@@ -302,73 +305,10 @@ fn main() {
         let simplified = e.simplified().to_string();
         let traditional = e.traditional().to_string();
 
-        let tocfl_entry = tocfl_dict.get_entry(
-            &e.traditional(),
-            &pinyin_taiwan
-                .as_ref()
-                .unwrap_or_else(|| &pinyin_ws_tone_number),
-        );
-
-        let tocfl_level = tocfl_entry.map(|entry| entry.tocfl_level);
-
-        let mut count_per_million_written = tocfl_entry
-            .map(|entry| entry.written_per_million)
-            .unwrap_or(0);
-        let count_per_million_spoken = tocfl_entry
-            .map(|entry| entry.spoken_per_million)
-            .unwrap_or(0);
-
-        let count_per_million_in_others = *common_char
-            .get_entry(&e.traditional(), e.pinyin())
-            .unwrap_or(&0);
-        if e.traditional() == "分" {
-            dbg!(count_per_million_in_others);
-            dbg!(count_per_million_written);
-            dbg!(e.pinyin());
-        }
-
         let kanji_char = kanji_hanzi_converter::convert_to_japanese_kanji(e.traditional());
         let kanji = kanji_dict.get(kanji_char.as_str()).map(|k| k.clone());
 
-        let mut commonness_boost = (count_per_million_spoken as f64
-            + count_per_million_written as f64)
-            .sqrt()
-            .max(4.0)
-            / 4.0;
-        assert!(!commonness_boost.is_nan());
-        //assert!(!count_per_million_written.is_nan());
-
-        let is_variant_entry = e.definitions().all(|def| def.contains("variant"));
-        if is_variant_entry {
-            count_per_million_written = 0;
-            commonness_boost = 1.0;
-        }
-
         let mut tags = Vec::new();
-        if count_per_million_written > 150 {
-            // top 1000
-            tags.push("#common".to_string());
-            tags.push("#common_spoken".to_string());
-        }
-        if count_per_million_spoken > 150 {
-            // top 1000
-            tags.push("#common".to_string());
-            tags.push("#common_written".to_string());
-        }
-
-        if count_per_million_spoken > 450 {
-            // top 300
-            tags.push("#verycommon".to_string());
-        }
-
-        if count_per_million_in_others > 550 {
-            tags.push("#commonchar".to_string());
-        }
-
-        if let Some(level) = tocfl_level {
-            tags.push("#TOCFL".to_string());
-            tags.push(format!("#TOCFL{}", level));
-        }
 
         if let Some(kanji) = kanji.as_ref() {
             if let Some(level) = kanji.wk_level {
@@ -401,20 +341,148 @@ fn main() {
             pinyin_search: filter_duplicates(pinyin_search),
             zhuyin,
             pinyin_pretty,
-            tocfl_level,
+            tocfl_level: None,
             meanings: definitions,
-            commonness_boost,
-            count_per_million_written,
-            count_per_million_spoken,
-            count_per_million_in_others,
+            commonness_boost: 0.0,
+            count_per_million_written: 0,
+            count_per_million_spoken: 0,
+            count_per_million_in_others: 0,
+            pinyin_ws_tone_number,
             tags: filter_duplicates(tags),
             kanji,
         };
+        entries.push(entry);
+    }
+    // Create a lookup table for the entries. Traditional Chinese -> Vec<Entry>
+    let mut entries_by_traditional: HashMap<char, Vec<Entry>> = HashMap::new();
+    for entry in &entries {
+        if entry.traditional.chars().count() > 1 {
+            continue;
+        }
+        entries_by_traditional
+            .entry(entry.traditional.clone().chars().next().unwrap())
+            .or_insert_with(Vec::new)
+            .push(entry.clone());
+    }
+
+    // Generate taiwan pinyin
+    let mut num_fixed = 0;
+    for entry in &mut entries {
+        let pinyin_taiwan = fix_pinyin(entry, &entries_by_traditional);
+        if let Some(pinyin_taiwan) = pinyin_taiwan {
+            //dbg!(&entry.traditional);
+            //dbg!(&pinyin_taiwan);
+            entry.pinyin_taiwan = Some(pinyin_taiwan.clone());
+            num_fixed += 1;
+        }
+    }
+    dbg!(num_fixed);
+    // Generate fix commonness lookup
+    for entry in &mut entries {
+        resolve_tocfl_commonness(entry, &tocfl_dict, &common_char);
+    }
+    for entry in entries {
         out.write_all(serde_json::to_string(&entry).unwrap().as_bytes())
             .unwrap();
         out.write_all(b"\n").unwrap();
     }
     println!("Hello, world!");
+}
+
+fn resolve_tocfl_commonness(
+    entry: &mut Entry,
+    tocfl_dict: &TOCFLDictionary<TOCFLEntry>,
+    common_char: &TOCFLDictionary<u64>,
+) {
+    let tocfl_entry = tocfl_dict.get_entry(
+        &entry.traditional,
+        &entry
+            .pinyin_taiwan
+            .as_ref()
+            .unwrap_or_else(|| &entry.pinyin_ws_tone_number),
+    );
+    entry.tocfl_level = tocfl_entry.map(|entry| entry.tocfl_level);
+
+    let mut count_per_million_written = tocfl_entry
+        .map(|entry| entry.written_per_million)
+        .unwrap_or(0);
+    let count_per_million_spoken = tocfl_entry
+        .map(|entry| entry.spoken_per_million)
+        .unwrap_or(0);
+
+    let count_per_million_in_others = *common_char
+        .get_entry(&entry.traditional, &entry.pinyin)
+        .unwrap_or(&0);
+    if entry.traditional == "意識" {
+        dbg!(&entry.traditional);
+        dbg!(count_per_million_in_others);
+        dbg!(count_per_million_written);
+        dbg!(&entry.pinyin);
+        dbg!(&entry.pinyin_taiwan);
+        dbg!(&entry.pinyin_ws_tone_number);
+        //dbg!(e.clone());
+    }
+    entry.commonness_boost = (count_per_million_spoken as f64 + count_per_million_written as f64)
+        .sqrt()
+        .max(4.0)
+        / 4.0;
+    assert!(!entry.commonness_boost.is_nan());
+    let is_variant_entry = entry.meanings.iter().all(|def| def.contains("variant"));
+    if is_variant_entry {
+        count_per_million_written = 0;
+        entry.commonness_boost = 1.0;
+    }
+    if count_per_million_written > 150 {
+        // top 1000
+        entry.tags.push("#common".to_string());
+        entry.tags.push("#common_spoken".to_string());
+    }
+    if count_per_million_spoken > 150 {
+        // top 1000
+        entry.tags.push("#common".to_string());
+        entry.tags.push("#common_written".to_string());
+    }
+
+    if count_per_million_spoken > 450 {
+        // top 300
+        entry.tags.push("#verycommon".to_string());
+    }
+
+    if count_per_million_in_others > 550 {
+        entry.tags.push("#commonchar".to_string());
+    }
+
+    if let Some(level) = entry.tocfl_level {
+        entry.tags.push("#TOCFL".to_string());
+        entry.tags.push(format!("#TOCFL{}", level));
+    }
+}
+
+fn fix_pinyin(
+    entry: &mut Entry,
+    entries_by_traditional: &HashMap<char, Vec<Entry>>,
+) -> Option<String> {
+    if entry.pinyin_taiwan.is_none() && entry.traditional.chars().count() > 1 {
+        let mut build_pinyin = String::new();
+        for (cha, orig_pinyin) in entry.traditional.chars().zip(entry.pinyin.split(" ")) {
+            if let Some(entries) = entries_by_traditional.get(&cha) {
+                let pinyin = entries
+                    .iter()
+                    .find_map(|entry| entry.pinyin_taiwan.to_owned())
+                    .unwrap_or(orig_pinyin.to_string());
+                build_pinyin.push_str(&pinyin);
+                build_pinyin.push_str(&" ");
+            } else {
+                return None;
+            }
+        }
+        let build_pinyin = build_pinyin.trim().to_lowercase();
+        if build_pinyin != entry.pinyin.to_lowercase() {
+            //dbg!(&build_pinyin, &entry.pinyin);
+            return Some(build_pinyin);
+        }
+    }
+    None
 }
 
 trait RemoveWhiteSpace {
@@ -459,7 +527,7 @@ fn filter_duplicates(input: Vec<String>) -> Vec<String> {
     result
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone, Debug)]
 struct Entry {
     simplified: String,
     traditional: String,
@@ -475,6 +543,7 @@ struct Entry {
     pinyin_search: Vec<String>,
     zhuyin: String,
     pinyin_pretty: String,
+    pinyin_ws_tone_number: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     tocfl_level: Option<u32>,
     meanings: Vec<String>,
@@ -488,7 +557,7 @@ struct Entry {
 
 type KanjiDict = HashMap<String, KanjiCharacter>;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 struct KanjiCharacter {
     strokes: u32,
     grade: Option<u32>,
