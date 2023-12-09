@@ -2235,6 +2235,12 @@ html {
   outline-offset: 2px;
 }
 
+.mockup-phone .display {
+  overflow: hidden;
+  border-radius: 40px;
+  margin-top: -25px;
+}
+
 .progress::-moz-progress-bar {
   --tw-bg-opacity: 1;
   background-color: hsl(var(--n) / var(--tw-bg-opacity));
@@ -2609,6 +2615,20 @@ html {
 
 .filter {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
+.chinese-word {
+  display: inline-block;
+  text-align: center;
+}
+
+.character {
+  display: block;
+}
+
+.annotation {
+  display: block;
+  text-align: start;
 }
 
 .hover\:text-blue-600:hover {

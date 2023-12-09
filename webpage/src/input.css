@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.chinese-word {
+    display: inline-block;
+    text-align: center;
+}
+
+.character {
+    display: block;
+}
+
+.annotation {
+    display: block;
+    text-align: start;
+}

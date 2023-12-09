@@ -454,15 +454,26 @@ pub fn SearchResultItem(cx: Scope<SearchResultItemProp>) -> Element {
     //<fg t="わたし">私</fg>
 
     let mut pinyin = entry.pinyin_pretty.to_string();
+    let zhuyin = entry.zhuyin.to_string();
     if let Some(pinyin_taiwan) = entry.pinyin_taiwan.as_ref() {
         pinyin += &(" / ".to_string() + &prettify(pinyin_taiwan.to_string()));
     }
+    //if pinyin != zhuyin {
+    //pinyin += &(" / ".to_string() + &zhuyin.to_string());
+    //}
     cx.render(rsx!(
         div { class:"flex flex-row mt-2",
             div { class:"basis-1/4 pl-1",
 
             div{
-                ruby{ class:"text-3xl font-medium", "{entry.traditional}" rt{ "{pinyin}" } } span{ class:"text-3xl font-medium", "{simpl_part}"}
+                //ruby{ class:"text-3xl font-medium", "{entry.traditional}" rt{ "{pinyin}" } } span{ class:"text-3xl font-medium", "{simpl_part}"}
+
+                span{ class:"chinese-word",
+                span { class: "annotation text-sm font-medium", "{pinyin}" }
+                //span { class: "annotation text-sm font-medium", "{zhuyin}" }
+                    span { class: "character text-3xl font-medium", "{entry.traditional} {simpl_part}" }
+                }
+
 
                 for audio in audios.iter() {
                     cx.render(rsx! {

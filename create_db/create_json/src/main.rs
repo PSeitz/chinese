@@ -378,8 +378,17 @@ fn main() {
     }
     dbg!(num_fixed);
     // Generate fix commonness lookup
+    // We want to know for every entry, if it has multiple pinyin variants
+    // so we can search without pinyin if the entry is unambiguous
+    let mut kanji_count: HashMap<String, u32> = HashMap::new();
     for entry in &mut entries {
-        resolve_tocfl_commonness(entry, &tocfl_dict, &common_char);
+        let count = kanji_count.entry(entry.traditional.clone()).or_default();
+        *count += 1;
+    }
+
+    for entry in &mut entries {
+        let is_unambiguous = kanji_count[&entry.traditional] == 1;
+        resolve_tocfl_commonness(entry, &tocfl_dict, &common_char, is_unambiguous);
     }
     for entry in entries {
         out.write_all(serde_json::to_string(&entry).unwrap().as_bytes())
@@ -393,14 +402,19 @@ fn resolve_tocfl_commonness(
     entry: &mut Entry,
     tocfl_dict: &TOCFLDictionary<TOCFLEntry>,
     common_char: &TOCFLDictionary<u64>,
+    is_unambiguous: bool,
 ) {
-    let tocfl_entry = tocfl_dict.get_entry(
-        &entry.traditional,
-        &entry
-            .pinyin_taiwan
-            .as_ref()
-            .unwrap_or_else(|| &entry.pinyin_ws_tone_number),
-    );
+    let tocfl_entry = if is_unambiguous {
+        tocfl_dict.get_entry_no_pinyin(&entry.traditional)
+    } else {
+        tocfl_dict.get_entry(
+            &entry.traditional,
+            &entry
+                .pinyin_taiwan
+                .as_ref()
+                .unwrap_or_else(|| &entry.pinyin_ws_tone_number),
+        )
+    };
     entry.tocfl_level = tocfl_entry.map(|entry| entry.tocfl_level);
 
     let mut count_per_million_written = tocfl_entry
@@ -413,7 +427,7 @@ fn resolve_tocfl_commonness(
     let count_per_million_in_others = *common_char
         .get_entry(&entry.traditional, &entry.pinyin)
         .unwrap_or(&0);
-    if entry.traditional == "意識" {
+    if entry.traditional == "看起來" {
         dbg!(&entry.traditional);
         dbg!(count_per_million_in_others);
         dbg!(count_per_million_written);
