@@ -20,4 +20,4 @@
 - [ ] Add similar entries
 
 - [X] Add multiple pinyin, by parsing "(Taiwan pr. [han4])"
-- [ ] Replace numbers with tones, in e.g. "CL:個|个[gè],位[wei4],名[ming2],屆|届[jie4]"
+- [X] Replace numbers with tones, in e.g. "CL:個|个[gè],位[wei4],名[ming2],屆|届[jie4]"
