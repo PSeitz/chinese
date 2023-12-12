@@ -153,7 +153,7 @@ fn render_page(search_term: String, ssr_output: String) -> Html<String> {
 <!DOCTYPE html>
 <html data-theme="emerald" lang="en">
   <head>
-    <link rel="icon" type="image/png" href="dist/favicon.ico"/>
+    <link rel="icon" href="dist/favicon.svg"/>
     <link rel="stylesheet" href="/dist/output.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -288,21 +288,70 @@ fn Page(cx: Scope<Params>) -> Element {
 
 pub fn Logo(cx: Scope) -> Element {
     cx.render(rsx!(
-        div {
-            class: "grow",
-            h1 {
-                class: "place-self-start",
-                a {
-                    class: "text-2xl font-serif font-bold",
-                    href: "/","Chisho"
+
+        a{
+            class: "logo-container text-2xl font-serif font-bold logo-text",
+            href: "/",
+            "Chisho",
+
+            svg {
+                id: "Layer_1",
+                class: "logo-svg-container",
+                height: "25",
+                preserve_aspect_ratio: "xMinYMin",
+                style: "overflow: visible;",
+                version: "1.1",
+                view_box: "0 0 100 90",
+                x: "162.2",
+                "xml:space": "preserve",
+                xmlns: "http://www.w3.org/2000/svg",
+                "xmlns:xlink": "http://www.w3.org/1999/xlink",
+                path {
+                    class: "st4",
+                    d: "M76.2,30.7V7.1H14.5c-5.2,0-9.4,4.3-9.4,9.4v4.7c0,5.2,4.3,9.4,9.4,9.4h11.1c-5.2,0-9.4,4.3-9.4,9.4v4.7   c0,5.2,4.3,9.4,9.4,9.4H14.5c-5.2,0-9.4,4.3-9.4,9.4v4.7c0,5.2,4.3,9.4,9.4,9.4h61.7V54.3h11.1V30.7H76.2z",
+                    style: "fill: #FFFFFF;",
                 }
-                span {
-                    class: "text-xs",
-                    "Dictionary",
+                path {
+                    class: "st46",
+                    d: "M42,42.5v21.7c0,0.9,0.5,1.8,1.3,2.2c0.8,0.4,1.8,0.4,2.6-0.1l5.9-3.9l5.9,3.9c0.4,0.3,0.9,0.4,1.4,0.4   c0.4,0,0.8-0.1,1.2-0.3c0.8-0.4,1.3-1.3,1.3-2.2V42.5H42z",
+                    style: "fill: #E15E31;",
+                }
+                path {
+                    class: "st46",
+                    d: "M72.2,74H14.5c-3,0-5.4-2.4-5.4-5.4v-4.7c0-3,2.4-5.4,5.4-5.4H37v-8H14.5c-7.4,0-13.4,6-13.4,13.4v4.7   c0,7.4,6,13.4,13.4,13.4h61.7c2.2,0,4-1.8,4-4V66.3h-8V74z",
+                    style: "fill: #376596; fill-opacity: 1;",
+                }
+                path {
+                    class: "st145",
+                    d: "M83.3,50.3H66.5v8h20.8c2.2,0,4-1.8,4-4V42.7h-8V50.3z M91.3,26.7H25.6c-7.4,0-13.4,6-13.4,13.4v4.7   c0,7.4,6,13.4,13.4,13.4H37v-8H25.6c-3,0-5.4-2.4-5.4-5.4v-4.7c0-3,2.4-5.4,5.4-5.4h65.7c2.2,0,4-1.8,4-4S93.5,26.7,91.3,26.7z",
+                    style: "fill: #49a0d9; fill-opacity: 1;",
+                }
+                path {
+                    class: "st301",
+                    d: "M14.5,11.1h65.7c2.2,0,4-1.8,4-4s-1.8-4-4-4H14.5c-7.4,0-13.4,6-13.4,13.4v4.7c0,7.4,6,13.4,13.4,13.4h61.7   c2.2,0,4-1.8,4-4V19.1h-8v7.6H14.5c-3,0-5.4-2.4-5.4-5.4v-4.7C9.1,13.5,11.5,11.1,14.5,11.1z",
+                    style: "fill: #6FBDD3;",
                 }
             }
         }
+
     ))
+
+    //cx.render(rsx!(
+    //div {
+    //class: "grow",
+    //h1 {
+    //class: "place-self-start",
+    //a {
+    //class: "text-2xl font-serif font-bold",
+    //href: "/","Chisho"
+    //}
+    //span {
+    //class: "text-xs",
+    //"Dictionarysss",
+    //}
+    //}
+    //}
+    //))
 }
 
 // Remember: Owned props must implement `PartialEq`!

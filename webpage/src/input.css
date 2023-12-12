@@ -15,3 +15,18 @@
     display: block;
     text-align: start;
 }
+
+.logo-container {
+    display: flex;
+    padding: 5px;
+    align-items: center; /* Aligns items vertically center */
+    justify-content: flex-start; /* Aligns items to the start (left) */
+}
+
+.logo-text {
+    margin-right: 20px; /* Adjusts space between text and SVG */
+}
+
+.logo-svg-container {
+    /* You can set width and height for your SVG container if needed */
+}
