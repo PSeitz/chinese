@@ -5,7 +5,7 @@ use std::{collections::HashMap, fs, io::Write};
 use pinyin_zhuyin::pinyin_to_zhuyin;
 use prettify_pinyin::prettify;
 use regex::{Captures, Regex};
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Serialize};
 use serde_json::Number;
 use tocfl::{load_tocfl_dictionary, TOCFLDictionary};
 
@@ -210,6 +210,9 @@ fn normalize_definitions(definitions: &mut Vec<String>) -> Option<String> {
         *text = re
             .replace_all(text, |caps: &Captures| {
                 let orig = &caps[1];
+                if orig.trim() == "" {
+                    return format!("[{}]", orig);
+                }
                 let pretty = prettify(caps[1].to_string());
                 if orig != pretty {
                     format!("[{}]", pretty)
@@ -233,6 +236,33 @@ fn normalize_definitions(definitions: &mut Vec<String>) -> Option<String> {
 }
 use tocfl::Entry as TOCFLEntry;
 
+fn get_de_dict() -> HashMap<(String, String), Vec<String>> {
+    let mut dict = HashMap::new();
+    let all = std::fs::read_to_string("../handedict.u8").unwrap();
+    for line in all.lines() {
+        let parsed = cedict::parse_line(line);
+        let e = match parsed {
+            cedict::Line::Entry(e) => e,
+            cedict::Line::Comment(_) | cedict::Line::Metadata(_, _) | cedict::Line::Empty => {
+                continue;
+            }
+            cedict::Line::Incorrect => {
+                continue;
+            }
+        };
+        let pinyin_ws_tone_number = e.pinyin().to_string();
+        let traditional = e.traditional().to_string();
+        let definitions = e.definitions().map(ToString::to_string).collect::<Vec<_>>();
+        if definitions
+            .iter()
+            .any(|def| def.contains(&"我家有四口人".to_string()))
+        {
+            dbg!(&definitions);
+        }
+        dict.insert((traditional, pinyin_ws_tone_number), definitions);
+    }
+    dict
+}
 fn main() {
     //let jmdict = load_jmdict("../../../japanese-dictionary/jmdict.json");
 
@@ -241,6 +271,8 @@ fn main() {
 
     let tocfl_dict = load_tocfl_dictionary();
     let common_char = tocfl::compile_common_chars();
+
+    let de_dict = get_de_dict();
 
     //let commonness = get_commonness();
     let radicals = get_character_radicals();
@@ -266,10 +298,15 @@ fn main() {
         let pinyin_ws_tone_number = e.pinyin().to_string();
         let pinyin_pretty = prettify(e.pinyin().to_string());
 
+        let meanings_de = de_dict
+            .get(&(e.traditional().to_string(), pinyin_ws_tone_number.clone()))
+            .cloned()
+            .unwrap_or_default();
+
         let zhuyin = pinyin_pretty
             .split_whitespace()
             .map(|pinyin_component| {
-                if let Some(zhuyin) = pinyin_to_zhuyin(&pinyin_component) {
+                if let Some(zhuyin) = pinyin_to_zhuyin(pinyin_component) {
                     zhuyin
                 } else {
                     pinyin_component.to_string()
@@ -278,44 +315,11 @@ fn main() {
             .collect::<Vec<String>>()
             .join(" ");
 
-        let gen_pinyin_variations = |pinyin_with_ws_and_tone_numbers: &str| {
-            vec![
-                // jia1 li2
-                pinyin_with_ws_and_tone_numbers.to_string(),
-                // jiali
-                pinyin_with_ws_and_tone_numbers.remove_whitespace(),
-                // jia li
-                pinyin_with_ws_and_tone_numbers.remove_numbers(),
-                // jiali
-                pinyin_with_ws_and_tone_numbers
-                    .remove_numbers()
-                    .remove_whitespace(),
-                // jiā lǐ
-                prettify(pinyin_with_ws_and_tone_numbers.to_string()),
-                // jiālǐ
-                prettify(pinyin_with_ws_and_tone_numbers.to_string()).remove_whitespace(),
-            ]
-        };
-
-        let mut pinyin_search = gen_pinyin_variations(&pinyin_ws_tone_number);
-        if let Some(pinyin_taiwan) = pinyin_taiwan.as_ref() {
-            pinyin_search.extend_from_slice(&gen_pinyin_variations(&pinyin_taiwan));
-        }
-
         let simplified = e.simplified().to_string();
         let traditional = e.traditional().to_string();
 
         let kanji_char = kanji_hanzi_converter::convert_to_japanese_kanji(e.traditional());
-        let kanji = kanji_dict.get(kanji_char.as_str()).map(|k| k.clone());
-
-        let mut tags = Vec::new();
-
-        if let Some(kanji) = kanji.as_ref() {
-            if let Some(level) = kanji.wk_level {
-                tags.push("#WK".to_string());
-                tags.push(format!("#WaniKaniLevel{}", level));
-            }
-        }
+        let kanji = kanji_dict.get(kanji_char.as_str()).cloned();
 
         let simplified = simplified.to_string();
         let traditional = traditional.to_string();
@@ -338,21 +342,63 @@ fn main() {
             traditional: traditional.to_string(),
             pinyin: e.pinyin().to_string(),
             pinyin_taiwan,
-            pinyin_search: filter_duplicates(pinyin_search),
+            pinyin_search: Vec::new(),
             zhuyin,
             pinyin_pretty,
             tocfl_level: None,
             meanings: definitions,
+            meanings_de,
             commonness_boost: 0.0,
             count_per_million_written: 0,
             count_per_million_spoken: 0,
             count_per_million_in_others: 0,
             pinyin_ws_tone_number,
-            tags: filter_duplicates(tags),
+            tags: Vec::new(),
             kanji,
         };
         entries.push(entry);
     }
+
+    // Add pinyin variants for search (this could be done by a tokenizer)
+    for entry in &mut entries {
+        let gen_pinyin_variations = |pinyin_with_ws_and_tone_numbers: &str| {
+            vec![
+                // jia1 li2
+                pinyin_with_ws_and_tone_numbers.to_string(),
+                // jiali
+                pinyin_with_ws_and_tone_numbers.remove_whitespace(),
+                // jia li
+                pinyin_with_ws_and_tone_numbers.remove_numbers(),
+                // jiali
+                pinyin_with_ws_and_tone_numbers
+                    .remove_numbers()
+                    .remove_whitespace(),
+                // jiā lǐ
+                prettify(pinyin_with_ws_and_tone_numbers.to_string()),
+                // jiālǐ
+                prettify(pinyin_with_ws_and_tone_numbers.to_string()).remove_whitespace(),
+            ]
+        };
+
+        let mut pinyin_search = gen_pinyin_variations(&entry.pinyin_ws_tone_number);
+        if let Some(pinyin_taiwan) = entry.pinyin_taiwan.as_ref() {
+            pinyin_search.extend_from_slice(&gen_pinyin_variations(pinyin_taiwan));
+        }
+        entry.pinyin_search = filter_duplicates(pinyin_search);
+    }
+
+    // Add WK tags
+    for entry in &mut entries {
+        if let Some(kanji) = entry.kanji.as_ref() {
+            if let Some(level) = kanji.wk_level {
+                entry.tags.push("#WK".to_string());
+                entry.tags.push(format!("#WaniKaniLevel{}", level));
+            }
+            // Filter duplicates
+            entry.tags = filter_duplicates(entry.tags.clone());
+        }
+    }
+
     // Create a lookup table for the entries. Traditional Chinese -> Vec<Entry>
     let mut entries_by_traditional: HashMap<char, Vec<Entry>> = HashMap::new();
     for entry in &entries {
@@ -361,7 +407,7 @@ fn main() {
         }
         entries_by_traditional
             .entry(entry.traditional.clone().chars().next().unwrap())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(entry.clone());
     }
 
@@ -404,15 +450,16 @@ fn resolve_tocfl_commonness(
     common_char: &TOCFLDictionary<u64>,
     is_unambiguous: bool,
 ) {
+    // If the entry is unambiguous, we can use the entry without pinyin
     let tocfl_entry = if is_unambiguous {
         tocfl_dict.get_entry_no_pinyin(&entry.traditional)
     } else {
         tocfl_dict.get_entry(
             &entry.traditional,
-            &entry
+            entry
                 .pinyin_taiwan
                 .as_ref()
-                .unwrap_or_else(|| &entry.pinyin_ws_tone_number),
+                .unwrap_or(&entry.pinyin_ws_tone_number),
         )
     };
     entry.tocfl_level = tocfl_entry.map(|entry| entry.tocfl_level);
@@ -427,7 +474,8 @@ fn resolve_tocfl_commonness(
     let count_per_million_in_others = *common_char
         .get_entry(&entry.traditional, &entry.pinyin)
         .unwrap_or(&0);
-    if entry.traditional == "看起來" {
+    if entry.traditional == "繪" {
+        dbg!(&is_unambiguous);
         dbg!(&entry.traditional);
         dbg!(count_per_million_in_others);
         dbg!(count_per_million_written);
@@ -449,12 +497,15 @@ fn resolve_tocfl_commonness(
     if count_per_million_written > 150 {
         // top 1000
         entry.tags.push("#common".to_string());
-        entry.tags.push("#common_spoken".to_string());
+        entry.tags.push("#common_written".to_string());
     }
+    entry.count_per_million_written = count_per_million_written;
+    entry.count_per_million_spoken = count_per_million_spoken;
+    entry.count_per_million_in_others = count_per_million_in_others;
     if count_per_million_spoken > 150 {
         // top 1000
         entry.tags.push("#common".to_string());
-        entry.tags.push("#common_written".to_string());
+        entry.tags.push("#common_spoken".to_string());
     }
 
     if count_per_million_spoken > 450 {
@@ -561,6 +612,7 @@ struct Entry {
     #[serde(skip_serializing_if = "Option::is_none")]
     tocfl_level: Option<u32>,
     meanings: Vec<String>,
+    meanings_de: Vec<String>,
     tags: Vec<String>,
     commonness_boost: f64,
     count_per_million_written: u64,
@@ -586,4 +638,72 @@ struct KanjiCharacter {
     wk_readings_on: Option<Vec<String>>,
     wk_readings_kun: Option<Vec<String>>,
     wk_radicals: Option<Vec<String>>,
+}
+
+struct Example {
+    simplified: String,
+    traditional: String,
+    german: String,
+}
+
+struct Definition {
+    definitions: Vec<String>,
+    example: Example,
+}
+
+fn parse_definitions(definitions: Vec<String>) -> Vec<Definition> {
+    let mut parsed_definitions = Vec::new();
+
+    for def in definitions {
+        let (def, examples) = def.split_once("Bsp.:").unwrap();
+        let parts: Vec<_> = def
+            .split(";")
+            .filter(|split| split.trim().is_empty())
+            .collect();
+        //let parts: Vec<&str> = def.split(";").collect();
+
+        let example_parts = parts.last().unwrap().split("--").collect::<Vec<&str>>();
+
+        // Assuming the format is always consistent
+        let example = Example {
+            simplified: example_parts[0].trim().to_string(),
+            traditional: example_parts[1].trim().to_string(),
+            german: example_parts[2].trim().to_string(),
+        };
+
+        // Remove the example part and collect the rest as definitions
+        let defs = parts[..parts.len() - 1]
+            .iter()
+            .map(|&s| s.trim().to_string())
+            .collect();
+
+        parsed_definitions.push(Definition {
+            definitions: defs,
+            example,
+        });
+    }
+
+    parsed_definitions
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_definitions() {
+        let definitions = vec![
+            "Familie; Haushalt (S); Bsp.: 我家有四口人。 我家有四口人。 -- Wir sind eine vierköpfige Familie.".to_string(),
+            // Add other examples here
+        ];
+
+        let parsed = parse_definitions(definitions);
+
+        assert_eq!(parsed.len(), 1);
+        let first = &parsed[0];
+        assert_eq!(first.definitions, vec!["Familie", "Haushalt"]);
+        assert_eq!(first.example.simplified, "我家有四口人。");
+        assert_eq!(first.example.traditional, "我家有四口人。");
+        assert_eq!(first.example.german, "Wir sind eine vierköpfige Familie.");
+    }
 }
