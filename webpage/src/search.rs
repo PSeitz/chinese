@@ -81,6 +81,11 @@ pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc,
     let pers = &PERSISTENCE;
 
     let mut query = query.trim().to_string();
+    if query.len() > 80 {
+        return Err(VelociError::InvalidRequest {
+            message: "Query longer than 80 chars".to_string(),
+        });
+    }
     info!("Query {:?}", query);
 
     let tag_filter = get_tag_filter(&mut query);
@@ -108,6 +113,7 @@ pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc,
                     "pinyin_search[]",
                     "tags[]",
                     "meanings[]",
+                    "meanings_de[]",
                 ]
             };
 
@@ -134,10 +140,8 @@ pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc,
                     } else {
                         // we replace the japanese chars with traditional ones. There's unlikely a
                         // match for japanese pairs
-                        let term: String = term
-                            .chars()
-                            .map(|char| to_traditional_chinese_variant(char))
-                            .collect();
+                        let term: String =
+                            term.chars().map(to_traditional_chinese_variant).collect();
                         vec![(term.to_string(), false), (format!(".*{}.*", term), true)]
                     }
                 }
@@ -175,7 +179,11 @@ pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc,
     let phrase_queries = generate_phrase_queries_simple(
         pers,
         &terms,
-        vec!["meanings[]".to_string(), "pinyin".to_string()],
+        vec![
+            "meanings[]".to_string(),
+            "meanings_de[]".to_string(),
+            "pinyin".to_string(),
+        ],
     )
     .unwrap();
     //println!(
@@ -212,7 +220,7 @@ pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc,
 
     let res = search::to_search_result(
         pers,
-        search::search(requesto.clone(), &pers).expect("search error"),
+        search::search(requesto.clone(), pers).expect("search error"),
         &requesto.select,
     );
     //println!("{}", serde_json::to_string_pretty(&res).unwrap());

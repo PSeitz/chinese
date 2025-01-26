@@ -502,9 +502,9 @@ dependencies = [
 
 [[package]]
 name = "tocfl"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec8540e82494aa7f84263f0ed14f9285d744387b998a599b1168bfdc8a983c65"
+checksum = "e2841f1cf1f7b10f8c8ecee98b7cff759623070333fa229930ab26aa53c763a2"
 dependencies = [
  "calamine",
  "pinyin",

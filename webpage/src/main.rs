@@ -112,7 +112,7 @@ async fn main() {
 
 fn render_page(search_term: String, ssr_output: String) -> Html<String> {
     let title = if search_term.is_empty() {
-        "Chisho.org - Chinese Dicitonary".to_string()
+        "Chisho.org - Chinese Dictionary".to_string()
     } else {
         format!("{} - Chisho.org", search_term)
     };
@@ -244,6 +244,7 @@ pub struct Entry {
     pinyin_pretty: String,
     tocfl_level: Option<u32>,
     meanings: Vec<String>,
+    meanings_de: Vec<String>,
     tags: Vec<String>,
     commonness_boost: f64,
     count_per_million_written: u64,
@@ -255,7 +256,22 @@ fn Page(cx: Scope<Params>) -> Element {
     let term = cx.props.q.to_owned().unwrap_or("".to_string());
     let top = cx.props.top.to_owned().unwrap_or(20);
     let req = if !term.is_empty() {
-        run_search_veloci(&term, top).unwrap()
+        let res = run_search_veloci(&term, top);
+        match res {
+            Ok(res) => res,
+            Err(e) => {
+                error!("Error in search: {:?}", e);
+                //return cx.render(rsx!(div { "Error in search {}", e }));
+                return cx.render(rsx!(
+                    div{
+                        class:"container mx-auto px-4 max-w-screen-md",
+                        Logo{}
+                        SearchInput{input_value: term.to_string()}
+                        cx.render(rsx!(div { "{e}" }))
+                    }
+                ));
+            }
+        }
     } else {
         Default::default()
     };
@@ -559,6 +575,10 @@ pub fn SearchResultItem(cx: Scope<SearchResultItemProp>) -> Element {
                 for (i, def) in entry.meanings.iter().enumerate() {
                     div { "{i+1}. {def}" }
                 }
+                    br { }
+                //for (i, def) in entry.meanings_de.iter().enumerate() {
+                    //div { "{i+1}. {def}" }
+                //}
             },
         }
         div { class: "divider" }

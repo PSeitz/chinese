@@ -191,7 +191,9 @@ fn get_character_radicals() -> Radicals {
     radicals
 }
 
-fn normalize_definitions(definitions: &mut Vec<String>) -> Option<String> {
+fn normalize_definitions_and_extract_taiwan_pinyin(
+    definitions: &mut Vec<String>,
+) -> Option<String> {
     let taiwan_pr = Regex::new(r"Taiwan pr. \[(.*?)\]").unwrap();
     // pinyin regex
     let re = Regex::new(r"\[(.*?)\]").unwrap();
@@ -293,7 +295,7 @@ fn main() {
         };
 
         let mut definitions = e.definitions().map(ToString::to_string).collect::<Vec<_>>();
-        let pinyin_taiwan = normalize_definitions(&mut definitions);
+        let pinyin_taiwan = normalize_definitions_and_extract_taiwan_pinyin(&mut definitions);
 
         let pinyin_ws_tone_number = e.pinyin().to_string();
         let pinyin_pretty = prettify(e.pinyin().to_string());
@@ -454,13 +456,11 @@ fn resolve_tocfl_commonness(
     let tocfl_entry = if is_unambiguous {
         tocfl_dict.get_entry_no_pinyin(&entry.traditional)
     } else {
-        tocfl_dict.get_entry(
-            &entry.traditional,
-            entry
-                .pinyin_taiwan
-                .as_ref()
-                .unwrap_or(&entry.pinyin_ws_tone_number),
-        )
+        let pinyin = entry
+            .pinyin_taiwan
+            .as_ref()
+            .unwrap_or(&entry.pinyin_ws_tone_number);
+        tocfl_dict.get_entry(&entry.traditional, pinyin)
     };
     entry.tocfl_level = tocfl_entry.map(|entry| entry.tocfl_level);
 
@@ -474,9 +474,10 @@ fn resolve_tocfl_commonness(
     let count_per_million_in_others = *common_char
         .get_entry(&entry.traditional, &entry.pinyin)
         .unwrap_or(&0);
-    if entry.traditional == "繪" {
+    if entry.traditional == "起來" {
         dbg!(&is_unambiguous);
         dbg!(&entry.traditional);
+        dbg!(&entry.meanings);
         dbg!(count_per_million_in_others);
         dbg!(count_per_million_written);
         dbg!(&entry.pinyin);
@@ -484,7 +485,9 @@ fn resolve_tocfl_commonness(
         dbg!(&entry.pinyin_ws_tone_number);
         //dbg!(e.clone());
     }
-    entry.commonness_boost = (count_per_million_spoken as f64 + count_per_million_written as f64)
+    entry.commonness_boost = (count_per_million_spoken as f64
+        + count_per_million_written as f64
+        + count_per_million_in_others as f64)
         .sqrt()
         .max(4.0)
         / 4.0;
@@ -705,5 +708,13 @@ mod tests {
         assert_eq!(first.example.simplified, "我家有四口人。");
         assert_eq!(first.example.traditional, "我家有四口人。");
         assert_eq!(first.example.german, "Wir sind eine vierköpfige Familie.");
+    }
+
+    #[test]
+    fn test_normalize_def() {
+        let pinyin = normalize_definitions_and_extract_taiwan_pinyin(&mut vec![
+            "also pr. [qǐ lai]".to_string(),
+        ]);
+        assert_eq!(pinyin, Some("qǐ lai".to_string()));
     }
 }
