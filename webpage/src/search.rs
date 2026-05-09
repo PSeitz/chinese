@@ -1,4 +1,4 @@
-use std::{path::PathBuf};
+use std::path::PathBuf;
 
 use fnv::FnvHashSet;
 use measure_time::*;
@@ -188,6 +188,7 @@ pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc,
             "meanings[]".to_string(),
             "meanings_de[]".to_string(),
             "pinyin".to_string(),
+            "pinyin_search[]".to_string(),
         ],
     )
     .unwrap();
@@ -256,7 +257,11 @@ mod tests {
         let pinyins = vec!["xiawu", "xia wu", "xiàwǔ", "xià wǔ", "xia4 wu3", "xia4wu3"];
         for pinyin in pinyins {
             let res = run_search_veloci(pinyin, 3).unwrap();
-            assert_eq!(res.data[0].doc["traditional"], "下午", "Failed for pinyin input: {}", pinyin);
+            assert_eq!(
+                res.data[0].doc["traditional"], "下午",
+                "Failed for pinyin input: {}",
+                pinyin
+            );
         }
     }
 }
