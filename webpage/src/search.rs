@@ -1,14 +1,8 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{path::PathBuf};
 
+use fnv::FnvHashSet;
 use measure_time::*;
 
-//use serde_json::json;
-//use tantivy::{
-//collector::TopDocs,
-//query::{BooleanQuery, Occur, Query, TermQuery},
-//schema::{Field, FieldType, IndexRecordOption},
-//DocId, Index, Score, SegmentReader, Term,
-//};
 use veloci::{
     error::VelociError,
     persistence::{self, Persistence},
@@ -23,9 +17,8 @@ fn is_chinese(cha: char) -> bool {
 }
 
 use regex::Regex;
-use std::collections::HashSet;
 
-fn extract_hashtags(text: &str) -> HashSet<String> {
+fn extract_hashtags(text: &str) -> Vec<String> {
     let HASHTAG_REGEX: Regex = Regex::new(r"\#[a-zA-Z][0-9a-zA-Z_]*").unwrap();
 
     HASHTAG_REGEX
@@ -36,8 +29,20 @@ fn extract_hashtags(text: &str) -> HashSet<String> {
 
 // Returns search on tags
 // Removes tags from query
-fn get_tag_filter(query: &mut String) -> Option<SearchRequest> {
-    let tags = extract_hashtags(query);
+fn get_tag_filter(query: &mut String) -> Result<Option<SearchRequest>, VelociError> {
+    let tags_vec = extract_hashtags(query);
+
+    let tags: FnvHashSet<String> = tags_vec.iter().cloned().collect();
+    if tags.len() > 5 {
+        return Err(VelociError::InvalidRequest {
+            message: "Bot detected: Too many tags, max 5".to_string(),
+        });
+    }
+    if tags_vec.len() > tags.len() + 3 {
+        return Err(VelociError::InvalidRequest {
+            message: "Bot detected: Many duplicate tags".to_string(),
+        });
+    }
 
     for tag in &tags {
         *query = query.replace(tag, "");
@@ -55,12 +60,12 @@ fn get_tag_filter(query: &mut String) -> Option<SearchRequest> {
         .collect();
 
     if !tags.is_empty() {
-        Some(SearchRequest::Or(search::SearchTree {
+        Ok(Some(SearchRequest::Or(search::SearchTree {
             queries,
             options: Default::default(),
-        }))
+        })))
     } else {
-        None
+        Ok(None)
     }
 }
 
@@ -88,7 +93,7 @@ pub fn run_search_veloci(query: &str, top: usize) -> Result<SearchResultWithDoc,
     }
     info!("Query {:?}", query);
 
-    let tag_filter = get_tag_filter(&mut query);
+    let tag_filter = get_tag_filter(&mut query)?;
     //dbg!(&query);
 
     let terms_from_query = || query.split_whitespace().filter(|el| !el.is_empty());
@@ -251,7 +256,7 @@ mod tests {
         let pinyins = vec!["xiawu", "xia wu", "xiàwǔ", "xià wǔ", "xia4 wu3", "xia4wu3"];
         for pinyin in pinyins {
             let res = run_search_veloci(pinyin, 3).unwrap();
-            assert_eq!(res.data[0].doc["traditional"], "下午");
+            assert_eq!(res.data[0].doc["traditional"], "下午", "Failed for pinyin input: {}", pinyin);
         }
     }
 }
